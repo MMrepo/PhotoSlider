@@ -187,6 +187,10 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         self.scrollInitalized = true
     }
     
+    public override func prefersStatusBarHidden() -> Bool {
+        return true
+    }
+    
     // MARK: - Constraints
     
     func layoutScrollView() {
@@ -204,7 +208,7 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         
         let views = ["closeButton": self.closeButton!]
         let constraintVertical   = NSLayoutConstraint.constraintsWithVisualFormat("V:|[closeButton(52)]", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: views)
-        let constraintHorizontal = NSLayoutConstraint.constraintsWithVisualFormat("H:[closeButton(52)]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: views)
+        let constraintHorizontal = NSLayoutConstraint.constraintsWithVisualFormat("H:|[closeButton(52)]", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: views)
         self.view.addConstraints(constraintVertical)
         self.view.addConstraints(constraintHorizontal)
     }
@@ -455,7 +459,7 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     
     // MARK: - Private Methods
     func updatePageLabel(pageNumber:Int) {
-        self.pageLabel?.text = "\(pageNumber) of \(self.imageResources()?.count)"
+        self.pageLabel?.text = "\(pageNumber) of \(self.imageResources()!.count)"
     }
     
     
