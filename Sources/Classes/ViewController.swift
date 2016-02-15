@@ -42,11 +42,18 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     public var delegate: PhotoSliderDelegate? = nil
     public var visiblePageControl = true
     public var visibleCloseButton = true
-    public var currentPage = 0
+    public var currentPage = 0 {
+        didSet {
+            updatePageLabel(currentPage + 1)
+        }
+    }
 
     public var pageControl = UIPageControl()
     public var backgroundViewColor = UIColor.blackColor()
     public var captionTextColor = UIColor.whiteColor()
+    
+    var pageLabel:UILabel?
+    var visiblePageLabel = true
     
     public init(imageURLs:Array<NSURL>) {
         super.init(nibName: nil, bundle: nil)
@@ -164,6 +171,15 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         self.updateCaption()
         self.setNeedsStatusBarAppearanceUpdate()
 
+        // Page Label
+        if self.visiblePageLabel {
+            self.pageLabel = UILabel(frame: CGRectZero)
+            self.pageLabel?.textColor = UIColor.whiteColor()
+            self.pageLabel?.font = UIFont (name: "OpenSans-Italic", size: 16.0)
+            
+            self.view.addSubview(self.pageLabel!)
+            self.layoutPageLabel()
+        }
     }
     
     override public func viewWillAppear(animated: Bool) {
@@ -222,6 +238,21 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         self.view.addConstraints(constraintHorizontal)
     }
     
+    func layoutPageLabel() {
+        self.pageLabel!.translatesAutoresizingMaskIntoConstraints = false
+        
+        let views = ["pageLabel": self.pageLabel!, "superview": self.view]
+        let constraintVertical = NSLayoutConstraint.constraintsWithVisualFormat("V:|-16-[pageLabel]", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: views)
+        
+        let constraintCenterX = NSLayoutConstraint.constraintsWithVisualFormat(
+            "V:[superview]-(<=1)-[pageLabel]",
+            options: NSLayoutFormatOptions.AlignAllCenterX,
+            metrics: nil,
+            views: views)
+        
+        self.view.addConstraints(constraintVertical)
+        self.view.addConstraints(constraintCenterX)
+    }
     // MARK: - UIScrollViewDelegate
 
     var scrollPreviewPoint = CGPointZero
@@ -401,6 +432,9 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
                 if self.visiblePageControl {
                     self.pageControl.alpha = 1.0
                 }
+                if self.visiblePageLabel {
+                    self.pageLabel?.alpha = 1.0
+                }
                 }, completion: nil)
 
         } else {
@@ -412,11 +446,18 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
                 if self.visiblePageControl {
                     self.pageControl.alpha = 0.0
                 }
+                if self.visiblePageLabel {
+                    self.pageLabel?.alpha = 0.0
+                }
                 }, completion: nil)
         }
     }
     
     // MARK: - Private Methods
+    func updatePageLabel(pageNumber:Int) {
+        self.pageLabel?.text = "\(pageNumber) of \(self.imageResources()?.count)"
+    }
+    
     
     func dissmissViewControllerAnimated(animated:Bool) {
         
@@ -494,33 +535,11 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     }
     
     public func transitionDestinationImageView(sourceImageView: UIImageView) {
-        
-        guard let sourceImage = sourceImageView.image else {
-            return
-        }
-        
-        var height = CGFloat(0.0)
-        var width = CGFloat(0.0)
-        
-        if UIDeviceOrientationIsPortrait(UIDevice.currentDevice().orientation) {
-                
-            height = (CGRectGetWidth(self.view.frame) * sourceImage.size.height) / sourceImage.size.width
-            width  = CGRectGetWidth(self.view.frame)
 
-        } else {
-
-            height = CGRectGetHeight(self.view.frame)
-            width  = (CGRectGetHeight(self.view.frame) * sourceImage.size.width) / sourceImage.size.height
-
-        }
-
-        sourceImageView.frame = CGRect(x: 0.0, y: 0.0, width: width, height: height)
         sourceImageView.center = CGPoint(
             x: CGRectGetWidth(self.view.frame) * 0.5,
             y: CGRectGetHeight(self.view.frame) * 0.5
         )
-        
-        
     }
     
     // MARK: - Private Method
