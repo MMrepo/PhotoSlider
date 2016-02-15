@@ -38,8 +38,8 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     var imageViews = Array<PhotoSlider.ImageView>()
     var previousPage = 0
     var captionLabel = UILabel(frame: CGRectZero)
-    var shareButtonImage:UIImage?
-    var shareButtonAction: (() -> ())?
+    public var shareButtonImage:UIImage?
+    public var shareButtonAction: (() -> ())?
     
     
     public var delegate: PhotoSliderDelegate? = nil
