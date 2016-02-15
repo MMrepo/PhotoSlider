@@ -21,9 +21,9 @@ enum PhotoSliderControllerUsingImageType:UInt {
 }
 
 public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderImageViewDelegate, ZoomingAnimationControllerTransitioning {
-
+    
     var scrollView:UIScrollView!
-
+    
     var imageURLs:Array<NSURL>?
     var images:Array<UIImage>?
     var photos:Array<PhotoSlider.Photo>?
@@ -31,23 +31,27 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     var backgroundView:UIView!
     var effectView:UIVisualEffectView!
     var closeButton:UIButton?
+    var shareButton:UIButton?
     var scrollMode:PhotoSliderControllerScrollMode = .None
     var scrollInitalized = false
     var closeAnimating = false
     var imageViews = Array<PhotoSlider.ImageView>()
     var previousPage = 0
     var captionLabel = UILabel(frame: CGRectZero)
-
-
+    var shareButtonImage:UIImage?
+    var shareButtonAction: (() -> ())?
+    
+    
     public var delegate: PhotoSliderDelegate? = nil
     public var visiblePageControl = true
     public var visibleCloseButton = true
+    public var visibleShareButton = true
     public var currentPage = 0 {
         didSet {
             updatePageLabel(currentPage + 1)
         }
     }
-
+    
     public var pageControl = UIPageControl()
     public var backgroundViewColor = UIColor.blackColor()
     public var captionTextColor = UIColor.whiteColor()
@@ -60,13 +64,13 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         self.imageURLs = imageURLs
         self.usingImageType = .URL
     }
-
+    
     public init(images:Array<UIImage>) {
         super.init(nibName: nil, bundle: nil)
         self.images = images
         self.usingImageType = .Image
     }
-
+    
     public init(photos:Array<PhotoSlider.Photo>) {
         super.init(nibName: nil, bundle: nil)
         self.photos = photos
@@ -76,16 +80,16 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     required public init(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)!
     }
-
+    
     public override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         self.view.frame = UIScreen.mainScreen().bounds
         self.view.backgroundColor = UIColor.clearColor()
-
+        
         self.backgroundView = UIView(frame: self.view.bounds)
         self.backgroundView.backgroundColor = self.backgroundViewColor
-
+        
         if floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_7_1 {
             self.view.addSubview(self.backgroundView)
         } else {
@@ -94,7 +98,7 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
             self.view.addSubview(self.effectView)
             self.effectView.addSubview(self.backgroundView)
         }
-
+        
         // scrollview setting for Item
         self.scrollView = UIScrollView(frame: CGRectMake(0, 0, self.view.bounds.width, self.view.bounds.height))
         self.scrollView.pagingEnabled = true
@@ -108,12 +112,12 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         self.scrollView.accessibilityLabel = "PhotoSliderScrollView"
         self.view.addSubview(self.scrollView)
         self.layoutScrollView()
-
+        
         self.scrollView.contentSize = CGSizeMake(
             CGRectGetWidth(self.view.bounds) * CGFloat(self.imageResources()!.count),
             CGRectGetHeight(self.view.bounds) * 3.0
         )
-
+        
         let width = CGRectGetWidth(self.view.bounds)
         let height = CGRectGetHeight(self.view.bounds)
         var frame = self.view.bounds
@@ -162,6 +166,15 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
             self.layoutCloseButton()
         }
         
+        if self.visibleShareButton {
+            self.shareButton = UIButton(frame: CGRectZero)
+            self.shareButton!.setImage(shareButtonImage, forState: UIControlState.Normal)
+
+            self.shareButton!.addTarget(self, action: "shareButtonDidTap:", forControlEvents: UIControlEvents.TouchUpInside)
+            self.shareButton!.imageView?.contentMode = UIViewContentMode.Center
+            self.view.addSubview(self.shareButton!)
+            self.layoutShareButton()
+        }
         // Caption
         self.captionLabel.textColor = self.captionTextColor
         self.captionLabel.numberOfLines = 3
@@ -170,7 +183,7 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         
         self.updateCaption()
         self.setNeedsStatusBarAppearanceUpdate()
-
+        
         // Page Label
         if self.visiblePageLabel {
             self.pageLabel = UILabel(frame: CGRectZero)
@@ -180,6 +193,11 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
             self.view.addSubview(self.pageLabel!)
             self.layoutPageLabel()
         }
+        
+        // SingleTapGesture
+        let singleTapGesture = UITapGestureRecognizer(target: self, action: "didSingleTap:")
+        singleTapGesture.numberOfTapsRequired = 1
+        self.scrollView.addGestureRecognizer(singleTapGesture)
     }
     
     override public func viewWillAppear(animated: Bool) {
@@ -209,6 +227,16 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         let views = ["closeButton": self.closeButton!]
         let constraintVertical   = NSLayoutConstraint.constraintsWithVisualFormat("V:|[closeButton(52)]", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: views)
         let constraintHorizontal = NSLayoutConstraint.constraintsWithVisualFormat("H:|[closeButton(52)]", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: views)
+        self.view.addConstraints(constraintVertical)
+        self.view.addConstraints(constraintHorizontal)
+    }
+    
+    func layoutShareButton() {
+        self.shareButton!.translatesAutoresizingMaskIntoConstraints = false
+        
+        let views = ["shareButton": self.shareButton!]
+        let constraintVertical   = NSLayoutConstraint.constraintsWithVisualFormat("V:|[shareButton(52)]", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: views)
+        let constraintHorizontal = NSLayoutConstraint.constraintsWithVisualFormat("H:[shareButton(52)]|", options: NSLayoutFormatOptions(rawValue: 0), metrics: nil, views: views)
         self.view.addConstraints(constraintVertical)
         self.view.addConstraints(constraintHorizontal)
     }
@@ -258,7 +286,7 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         self.view.addConstraints(constraintCenterX)
     }
     // MARK: - UIScrollViewDelegate
-
+    
     var scrollPreviewPoint = CGPointZero
     public func scrollViewWillBeginDragging(scrollView: UIScrollView) {
         
@@ -267,9 +295,9 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         self.scrollPreviewPoint = scrollView.contentOffset
         
     }
-
+    
     public func scrollViewDidScroll(scrollView: UIScrollView) {
-
+        
         if scrollInitalized == false {
             self.generateCurrentPage()
             return
@@ -286,7 +314,7 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
             return
         }
         
-
+        
         let offsetX = fabs(scrollView.contentOffset.x - self.scrollPreviewPoint.x)
         let offsetY = fabs(scrollView.contentOffset.y - self.scrollPreviewPoint.y)
         
@@ -301,7 +329,7 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         if self.scrollMode == .Vertical {
             let offsetHeight = fabs(scrollView.frame.size.height - scrollView.contentOffset.y)
             let alpha = 1.0 - ( fabs(offsetHeight) / (scrollView.frame.size.height / 2.0) )
-
+            
             self.backgroundView.alpha = alpha
             
             var contentOffset = scrollView.contentOffset
@@ -324,11 +352,11 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         
         // Update current page index.
         self.generateCurrentPage()
-
+        
     }
     
     func generateCurrentPage() {
-
+        
         var page = Int(round(scrollView.contentOffset.x / scrollView.frame.size.width))
         if page < 0 {
             page = 0
@@ -337,11 +365,11 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         }
         
         self.currentPage = page
-
+        
         if self.visiblePageControl {
             self.pageControl.currentPage = self.currentPage
         }
-
+        
     }
     
     public func scrollViewDidEndDragging(scrollView: UIScrollView, willDecelerate decelerate: Bool) {
@@ -399,39 +427,45 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     }
     
     public func scrollViewDidEndDecelerating(scrollView: UIScrollView) {
-
+        
         if self.previousPage != self.currentPage {
-
+            
             // If page index has changed - reset zoom scale for previous image.
             let imageView = self.imageViews[self.previousPage]
             imageView.scrollView.zoomScale = imageView.scrollView.minimumZoomScale
             
             // Show Caption Label
             self.updateCaption()
-
+            
         }
         
         self.scrollMode = .None
-
+        
     }
     
     // MARK: - Button Actions
     
     func closeButtonDidTap(sender:UIButton) {
-
+        
         self.delegate?.photoSliderControllerWillDismiss?(self)
         self.dissmissViewControllerAnimated(true)
-
+        
     }
     
+    func shareButtonDidTap(sender:UIButton) {
+        shareButtonAction?()
+    }
+    
+    
     // MARK: - PhotoSliderImageViewDelegate
-
+    
     func photoSliderImageViewDidEndZooming(viewController: PhotoSlider.ImageView, atScale scale: CGFloat) {
         if scale <= 1.0 {
             self.scrollView.scrollEnabled = true
             
             UIView.animateWithDuration(0.05, delay: 0.0, options: UIViewAnimationOptions.CurveLinear, animations: { () -> Void in
                 self.closeButton?.alpha = 1.0
+                self.shareButton?.alpha = 1.0
                 self.captionLabel.alpha = 1.0
                 if self.visiblePageControl {
                     self.pageControl.alpha = 1.0
@@ -440,12 +474,13 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
                     self.pageLabel?.alpha = 1.0
                 }
                 }, completion: nil)
-
+            
         } else {
             self.scrollView.scrollEnabled = false
-
+            
             UIView.animateWithDuration(0.05, delay: 0.0, options: UIViewAnimationOptions.CurveLinear, animations: { () -> Void in
                 self.closeButton?.alpha = 0.0
+                self.shareButton?.alpha = 0.0
                 self.captionLabel.alpha = 0.0
                 if self.visiblePageControl {
                     self.pageControl.alpha = 0.0
@@ -485,7 +520,7 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         }
         
         return NSBundle(forClass: self.dynamicType)
-
+        
     }
     
     // MARK: - UITraitEnvironment
@@ -513,15 +548,15 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         // ImageViews
         var frame = CGRect(x: 0.0, y: contentViewBounds.height, width: contentViewBounds.width, height: contentViewBounds.height)
         for i in 0..<self.scrollView.subviews.count {
-
+            
             let imageView = self.scrollView.subviews[i] as! PhotoSlider.ImageView
             
             imageView.frame = frame
             frame.origin.x += contentViewBounds.size.width
             imageView.scrollView.frame = contentViewBounds
-
+            
             imageView.layoutImageView()
-
+            
         }
         
         self.scrollView.contentOffset = CGPointMake(CGFloat(self.currentPage) * contentViewBounds.width, height)
@@ -539,7 +574,7 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     }
     
     public func transitionDestinationImageView(sourceImageView: UIImageView) {
-
+        
         sourceImageView.center = CGPoint(
             x: CGRectGetWidth(self.view.frame) * 0.5,
             y: CGRectGetHeight(self.view.frame) * 0.5
@@ -547,9 +582,9 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     }
     
     // MARK: - Private Method
-
+    
     func imageResources() -> Array<AnyObject>? {
-
+        
         if self.usingImageType == .URL {
             return self.imageURLs
         } else if self.usingImageType == .Image {
@@ -562,24 +597,54 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     }
     
     func updateCaption() {
-
+        
         if self.usingImageType == .Photo {
             if self.imageResources()?.count > 0 {
                 let photo = self.photos![self.currentPage] as Photo
                 UIView.animateWithDuration(0.1, delay: 0.0, options: UIViewAnimationOptions.CurveLinear, animations: { () -> Void in
                     self.captionLabel.alpha = 0.0
                     }, completion: { (completed) -> Void in
-
+                        
                         self.captionLabel.text = photo.caption
                         UIView.animateWithDuration(0.1, delay: 0.0, options: UIViewAnimationOptions.CurveLinear, animations: { () -> Void in
                             self.captionLabel.alpha = 1.0
-                        }, completion: nil)
-
+                            }, completion: nil)
+                        
                         
                 })
             }
         }
-
+        
     }
-
+    
+    func didSingleTap(sender: UIGestureRecognizer) {
+        if self.pageLabel?.alpha == 0.0 {
+            
+            UIView.animateWithDuration(0.05, delay: 0.0, options: UIViewAnimationOptions.CurveLinear, animations: { () -> Void in
+                self.closeButton?.alpha = 1.0
+                self.shareButton?.alpha = 1.0
+                self.captionLabel.alpha = 1.0
+                if self.visiblePageControl {
+                    self.pageControl.alpha = 1.0
+                }
+                if self.visiblePageLabel {
+                    self.pageLabel?.alpha = 1.0
+                }
+                }, completion: nil)
+            
+        } else {
+            
+            UIView.animateWithDuration(0.05, delay: 0.0, options: UIViewAnimationOptions.CurveLinear, animations: { () -> Void in
+                self.closeButton?.alpha = 0.0
+                self.shareButton?.alpha = 0.0
+                self.captionLabel.alpha = 0.0
+                if self.visiblePageControl {
+                    self.pageControl.alpha = 0.0
+                }
+                if self.visiblePageLabel {
+                    self.pageLabel?.alpha = 0.0
+                }
+                }, completion: nil)
+        }
+    }
 }
