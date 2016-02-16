@@ -169,9 +169,10 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         if self.visibleShareButton {
             self.shareButton = UIButton(frame: CGRectZero)
             self.shareButton!.setImage(shareButtonImage, forState: UIControlState.Normal)
-
+            
             self.shareButton!.addTarget(self, action: "shareButtonDidTap:", forControlEvents: UIControlEvents.TouchUpInside)
             self.shareButton!.imageView?.contentMode = UIViewContentMode.Center
+            self.shareButton!.tintColor = UIColor.whiteColor()
             self.view.addSubview(self.shareButton!)
             self.layoutShareButton()
         }
@@ -575,6 +576,17 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     
     public func transitionDestinationImageView(sourceImageView: UIImageView) {
         
+        guard let sourceImage = sourceImageView.image else {
+            return
+        }
+        
+        var height = CGFloat(0.0)
+        var width = CGFloat(0.0)
+        
+        height = (CGRectGetWidth(self.view.frame) * sourceImage.size.height) / sourceImage.size.width
+        width  = CGRectGetWidth(self.view.frame)
+        
+        sourceImageView.frame = CGRect(x: 0.0, y: 0.0, width: width, height: height)
         sourceImageView.center = CGPoint(
             x: CGRectGetWidth(self.view.frame) * 0.5,
             y: CGRectGetHeight(self.view.frame) * 0.5
