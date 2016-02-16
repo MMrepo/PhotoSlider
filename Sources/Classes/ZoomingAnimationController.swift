@@ -13,6 +13,80 @@ public protocol ZoomingAnimationControllerTransitioning {
     func transitionDestinationImageView(sourceImageView: UIImageView)
 }
 
+public class ZoomingAnimationContext: NSObject, UIViewControllerContextTransitioning {
+    
+    private var privateViewControllers:[String:UIViewController] = [:]
+    private weak var privateContainerView:UIView?
+    private var privatePresentationStyle:UIModalPresentationStyle = .Custom
+    public var completionBlock: ((Bool) -> ())?
+    private var animated:Bool = true
+    private var interactive:Bool = false
+    
+    public init(fromViewController:UIViewController, toViewController:UIViewController) {
+        self.privateContainerView = fromViewController.view.superview;
+        self.privateViewControllers = [
+            UITransitionContextFromViewControllerKey:fromViewController,
+            UITransitionContextToViewControllerKey:toViewController,
+        ]
+    }
+    
+    public func targetTransform() -> CGAffineTransform {
+        return CGAffineTransformIdentity
+    }
+    
+    
+    public func containerView() -> UIView? {
+        return self.privateContainerView
+    }
+    
+    public func presentationStyle() -> UIModalPresentationStyle {
+        return self.privatePresentationStyle
+    }
+    
+    public func isAnimated() -> Bool {
+        return self.animated
+    }
+    
+    public func isInteractive() -> Bool {
+        return self.interactive
+    }
+    
+    public func viewControllerForKey(key: String) -> UIViewController? {
+        return self.privateViewControllers[key]
+    }
+    
+    public func viewForKey(key: String) -> UIView? {
+        return self.privateViewControllers[key]?.view
+    }
+    
+    public func initialFrameForViewController(vc: UIViewController) -> CGRect {
+        return self.privateContainerView?.bounds ?? CGRectZero
+    }
+    
+    public func finalFrameForViewController(vc: UIViewController) -> CGRect {
+        return self.privateContainerView?.bounds ?? CGRectZero
+    }
+    
+    public func completeTransition(didComplete: Bool) {
+        self.completionBlock?(didComplete)
+    }
+    
+    public func transitionWasCancelled() -> Bool {
+        return false
+    }
+    
+    public func updateInteractiveTransition(percentComplete: CGFloat) {
+        
+    }
+    
+    public func finishInteractiveTransition() {
+        
+    }
+    
+    public func cancelInteractiveTransition() {
+        
+    }
+}
 
 public class ZoomingAnimationController: NSObject, UIViewControllerAnimatedTransitioning {
     
