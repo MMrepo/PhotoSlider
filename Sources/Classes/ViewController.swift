@@ -178,16 +178,17 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
             self.layoutCloseButton()
         }
         
+        // Share Button
         if self.visibleShareButton {
-            self.shareButton = UIButton(frame: CGRectZero)
+            self.shareButton = UIButton(type: .System)
             self.shareButton!.setImage(shareButtonImage, forState: UIControlState.Normal)
-            
             self.shareButton!.addTarget(self, action: "shareButtonDidTap:", forControlEvents: UIControlEvents.TouchUpInside)
             self.shareButton!.imageView?.contentMode = UIViewContentMode.Center
             self.shareButton!.tintColor = UIColor.whiteColor()
             self.view.addSubview(self.shareButton!)
             self.layoutShareButton()
         }
+        
         // Caption
         self.captionLabel.textColor = self.captionTextColor
         self.captionLabel.numberOfLines = 3
@@ -696,17 +697,8 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         var height = CGFloat(0.0)
         var width = CGFloat(0.0)
         
-        if !UIDeviceOrientationIsPortrait(UIDevice.currentDevice().orientation) {
-            
-            height = (CGRectGetWidth(self.view.frame) * sourceImage.size.height) / sourceImage.size.width
-            width  = CGRectGetWidth(self.view.frame)
-            
-        } else {
-            
-            height = CGRectGetHeight(self.view.frame)
-            width  = (CGRectGetHeight(self.view.frame) * sourceImage.size.width) / sourceImage.size.height
-            
-        }
+        height = (CGRectGetWidth(self.view.frame) * sourceImage.size.height) / sourceImage.size.width
+        width  = CGRectGetWidth(self.view.frame)
         
         sourceImageView.frame = CGRect(x: 0.0, y: 0.0, width: width, height: height)
         sourceImageView.center = CGPoint(
