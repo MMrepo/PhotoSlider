@@ -56,6 +56,7 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     public var visibleShareButton = true
     public var visibleEmailButton = true
     public var visibleCallButton = true
+    public var isPresented = false
     
     public var currentPage = 0 {
         didSet {
@@ -244,6 +245,8 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     override public func viewWillAppear(animated: Bool) {
         self.scrollView.contentOffset = CGPointMake(self.scrollView.bounds.width * CGFloat(self.currentPage), self.scrollView.bounds.height)
         self.scrollInitalized = true
+        
+        isPresented = true
     }
     
     public override func prefersStatusBarHidden() -> Bool {
@@ -493,6 +496,10 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
             movedHeight = screenHeight
         }
         
+        UIDevice.currentDevice().setValue(NSNumber(integer: UIInterfaceOrientation.Portrait.rawValue), forKey: "orientation")
+        
+        isPresented = false
+        
         UIView.animateWithDuration(
             0.4,
             delay: 0,
@@ -534,8 +541,7 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     
     func closeButtonDidTap(sender:UIButton) {
         
-        self.delegate?.photoSliderControllerWillDismiss?(self)
-        self.dissmissViewControllerAnimated(true)
+        dismissPhotoSlider()
         
     }
     
@@ -690,8 +696,17 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         var height = CGFloat(0.0)
         var width = CGFloat(0.0)
         
-        height = (CGRectGetWidth(self.view.frame) * sourceImage.size.height) / sourceImage.size.width
-        width  = CGRectGetWidth(self.view.frame)
+        if !UIDeviceOrientationIsPortrait(UIDevice.currentDevice().orientation) {
+            
+            height = (CGRectGetWidth(self.view.frame) * sourceImage.size.height) / sourceImage.size.width
+            width  = CGRectGetWidth(self.view.frame)
+            
+        } else {
+            
+            height = CGRectGetHeight(self.view.frame)
+            width  = (CGRectGetHeight(self.view.frame) * sourceImage.size.width) / sourceImage.size.height
+            
+        }
         
         sourceImageView.frame = CGRect(x: 0.0, y: 0.0, width: width, height: height)
         sourceImageView.center = CGPoint(
@@ -778,4 +793,14 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
                 }, completion: nil)
         }
     }
+    
+    
+    public func dismissPhotoSlider() {
+        UIDevice.currentDevice().setValue(NSNumber(integer: UIInterfaceOrientation.Portrait.rawValue), forKey: "orientation")
+        
+        isPresented = false
+        self.delegate?.photoSliderControllerWillDismiss?(self)
+        self.dissmissViewControllerAnimated(true)
+    }
+    
 }
