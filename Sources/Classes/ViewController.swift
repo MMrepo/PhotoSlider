@@ -254,6 +254,14 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         return true
     }
     
+    public override func shouldAutorotate() -> Bool {
+        if self.scrollMode == .None {
+            return true
+        }
+        else {
+            return false
+        }
+    }
     // MARK: - Constraints
     
     func layoutScrollView() {
@@ -641,6 +649,10 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     // MARK: - UITraitEnvironment
     
     public override func traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
+        
+        if previousTraitCollection == nil {
+            return
+        }
         
         self.scrollMode = .Rotating
         
