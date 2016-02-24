@@ -57,6 +57,7 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     public var visibleEmailButton = true
     public var visibleCallButton = true
     public var isPresented = false
+    public var shouldShowEmailForm = false
     
     public var currentPage = 0 {
         didSet {
