@@ -94,8 +94,15 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         super.init(coder: aDecoder)!
     }
     
+    override public func supportedInterfaceOrientations() -> UIInterfaceOrientationMask {
+        return .AllButUpsideDown
+    }
+    
     public override func viewDidLoad() {
         super.viewDidLoad()
+        
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: "rotate:", name:UIApplicationDidChangeStatusBarFrameNotification, object: nil)
+        
         
         self.view.frame = UIScreen.mainScreen().bounds
         self.view.backgroundColor = UIColor.clearColor()
@@ -248,8 +255,52 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         self.scrollView.contentOffset = CGPointMake(self.scrollView.bounds.width * CGFloat(self.currentPage), self.scrollView.bounds.height)
         self.scrollInitalized = true
         
+        //        isPresented = true
+    }
+    
+    var originalWindow:UIWindow?
+    var originalRootViewController:UIViewController?
+    var window:UIWindow?
+    
+    //    static var photoSlider:ViewController?
+    
+    public override func viewDidAppear(animated: Bool) {
+        
+        originalWindow = UIApplication.sharedApplication().keyWindow
+        originalRootViewController = originalWindow?.rootViewController
+        originalWindow?.rootViewController = nil
+        self.removeFromParentViewController()
+        self.view.removeFromSuperview()
+        window = UIWindow(frame:UIScreen.mainScreen().bounds)
+        window?.tag = 666
+        window?.rootViewController = self
+        window?.hidden = false
+        window?.makeKeyAndVisible()
+        //        window?.addSubview(ViewController.photoSlider!.view)
+        
+        print("AAA: \(window?.rootViewController)")
+        
+        let delay = 0.1 * Double(NSEC_PER_SEC)
+        let time = dispatch_time(DISPATCH_TIME_NOW, Int64(delay))
+        dispatch_after(time, dispatch_get_main_queue()) {
+            self.originalWindow?.hidden = true
+        }
+        
+        super.viewDidAppear(animated)
         isPresented = true
     }
+    
+    
+    override public func viewWillDisappear(animated: Bool) {
+        super.viewWillDisappear(animated)
+    }
+    
+    //    override public func viewDidDisappear(animated: Bool) {
+    //        super.viewDidDisappear(animated)
+    //        window = nil
+    //        originalWindow?.hidden = false
+    //        originalWindow?.makeKeyWindow()
+    //    }
     
     public override func prefersStatusBarHidden() -> Bool {
         return true
@@ -262,6 +313,31 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         else {
             return false
         }
+    }
+    
+    public func currentAllowedOrientation() -> UIInterfaceOrientationMask {
+        
+        if UIApplication.sharedApplication().statusBarOrientation.isLandscape {
+            print("landscape: \(self.scrollView.scrollEnabled)")
+            if self.scrollView.scrollEnabled && self.scrollMode == .None {
+                return .All
+            }
+            else {
+                return .Landscape
+            }
+        }
+        
+        if UIApplication.sharedApplication().statusBarOrientation.isPortrait {
+            print("protrait: \(self.scrollView.scrollEnabled)")
+            if self.scrollView.scrollEnabled && self.scrollMode == .None {
+                return .All
+            }
+            else {
+                return .Portrait
+            }
+        }
+        
+        return .All
     }
     // MARK: - Constraints
     
@@ -395,7 +471,6 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     }
     
     public func scrollViewDidScroll(scrollView: UIScrollView) {
-        
         if scrollInitalized == false {
             self.generateCurrentPage()
             return
@@ -425,6 +500,10 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         }
         
         if self.scrollMode == .Vertical {
+            if UIApplication.sharedApplication().statusBarOrientation.isLandscape {
+                scrollView.contentOffset = CGPoint(x: scrollView.contentOffset.x, y: scrollPreviewPoint.y)
+            }
+            
             let offsetHeight = fabs(scrollView.frame.size.height - scrollView.contentOffset.y)
             let alpha = 1.0 - ( fabs(offsetHeight) / (scrollView.frame.size.height / 2.0) )
             
@@ -482,13 +561,16 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
                 self.scrollView.frame = scrollView.frame
                 self.closePhotoSlider(false)
             }
-            
         }
-        
     }
     
     func closePhotoSlider(up:Bool) {
         
+        
+        if UIApplication.sharedApplication().statusBarOrientation.isLandscape {
+            return
+        }
+        print("landscape? \(UIApplication.sharedApplication().statusBarOrientation.isLandscape)")
         if self.closeAnimating == true {
             return
         }
@@ -506,9 +588,10 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
             movedHeight = screenHeight
         }
         
+        isPresented = false
+        
         UIDevice.currentDevice().setValue(NSNumber(integer: UIInterfaceOrientation.Portrait.rawValue), forKey: "orientation")
         
-        isPresented = false
         
         UIView.animateWithDuration(
             0.4,
@@ -624,6 +707,13 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     
     func dissmissViewControllerAnimated(animated:Bool) {
         
+        //        ViewController.photoSlider = nil
+        originalWindow?.rootViewController = originalRootViewController
+        originalWindow?.addSubview(self.view)
+        originalWindow?.hidden = false
+        originalWindow?.makeKeyWindow()
+        window = nil
+        
         self.dismissViewControllerAnimated(animated, completion: { () -> Void in
             
             self.delegate?.photoSliderControllerDidDismiss?(self)
@@ -649,17 +739,12 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     
     // MARK: - UITraitEnvironment
     
-    public override func traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
-        
-        if previousTraitCollection == nil {
-            return
-        }
+    func rotate(notification:NSNotification? = nil) {
         
         self.scrollMode = .Rotating
         
-        let contentViewBounds = self.view.bounds
+        let contentViewBounds = UIScreen.mainScreen().bounds
         let height = contentViewBounds.height
-        
         // Background View
         self.backgroundView.frame = contentViewBounds
         if floor(NSFoundationVersionNumber) > NSFoundationVersionNumber_iOS_7_1 {
@@ -690,6 +775,15 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
         self.scrollView.contentOffset = CGPointMake(CGFloat(self.currentPage) * contentViewBounds.width, height)
         
         self.scrollMode = .None
+    }
+    
+    public override func traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
+        
+        if previousTraitCollection == nil {
+            return
+        }
+        
+        //       rotate()
     }
     
     // MARK: - ZoomingAnimationControllerTransitioning
@@ -801,9 +895,12 @@ public class ViewController:UIViewController, UIScrollViewDelegate, PhotoSliderI
     
     
     public func dismissPhotoSlider() {
+        isPresented = false
         UIDevice.currentDevice().setValue(NSNumber(integer: UIInterfaceOrientation.Portrait.rawValue), forKey: "orientation")
         
-        isPresented = false
+        repeat {
+            UIDevice.currentDevice().setValue(NSNumber(integer: UIInterfaceOrientation.Portrait.rawValue), forKey: "orientation")
+        } while UIApplication.sharedApplication().statusBarOrientation.isLandscape
         self.delegate?.photoSliderControllerWillDismiss?(self)
         self.dissmissViewControllerAnimated(true)
     }
